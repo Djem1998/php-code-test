@@ -1,56 +1,93 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tests;
 
 use Codeception\Example;
-use Codeception\Test\Unit;
-use Mockery\Mock;
+use Exception;
+use Mockery;
+use Mockery\MockInterface;
+use Tymeshift\PhpTest\Builder\UrlBuilder;
 use Tymeshift\PhpTest\Components\HttpClientInterface;
+use Tymeshift\PhpTest\Domains\Task\Builder\TaskBuilder;
+use Tymeshift\PhpTest\Domains\Task\Builder\TaskCollectionBuilder;
+use Tymeshift\PhpTest\Domains\Task\Factory\TaskCollectionFactory;
+use Tymeshift\PhpTest\Domains\Task\Factory\TaskFactory;
+use Tymeshift\PhpTest\Domains\Task\Interfaces\TaskStorageInterface;
 use Tymeshift\PhpTest\Domains\Task\TaskCollection;
-use Tymeshift\PhpTest\Domains\Task\TaskFactory;
 use Tymeshift\PhpTest\Domains\Task\TaskRepository;
 use Tymeshift\PhpTest\Domains\Task\TaskStorage;
+use UnitTester;
 
 class TaskCest
 {
+    /**
+     * @var TaskRepository|null
+     */
+    private ?TaskRepository $taskRepository;
 
     /**
-     * @var TaskRepository
+     * @var MockInterface|null
      */
-    private $taskRepository;
+    private ?MockInterface $httpClientMock;
 
-
-    public function _before()
+    /**
+     * @return void
+     */
+    public function _before(): void
     {
-        $httpClientMock = \Mockery::mock(HttpClientInterface::class);
-        $storage = new TaskStorage($httpClientMock);
-        $this->taskRepository = new TaskRepository($storage, new TaskFactory());
+        //@TODO better to introduce DI container to base on automatic injections
+        $this->httpClientMock = Mockery::mock(HttpClientInterface::class);
+        $this->taskRepository = new TaskRepository(
+            new TaskStorage($this->httpClientMock, new UrlBuilder()),
+            new TaskFactory(new TaskBuilder()),
+            new TaskCollectionFactory(new TaskCollectionBuilder(new TaskFactory(new TaskBuilder())))
+        );
     }
 
-    public function _after()
+    /**
+     * @return void
+     */
+    public function _after(): void
     {
         $this->taskRepository = null;
-        \Mockery::close();
+        $this->httpClientMock = null;
+        Mockery::close();
     }
 
     /**
+     * @param Example $example
+     * @param UnitTester $tester
+     * @return void
      * @dataProvider tasksDataProvider
      */
-    public function testGetTasks(Example $example, \UnitTester $tester)
+    public function testGetTasks(Example $example, UnitTester $tester): void
     {
-        $tasks = $this->taskRepository->getByScheduleId(1);
+        $scheduleId = 1;
+        $this->httpClientMock
+            ->shouldReceive('request')
+            ->with(HttpClientInterface::METHOD_GET, TaskStorageInterface::SCHEDULE_TASKS_URI . $scheduleId)
+            ->andReturn([...$example]);
+        $tasks = $this->taskRepository->getByScheduleId($scheduleId);
         $tester->assertInstanceOf(TaskCollection::class, $tasks);
     }
 
-    public function testGetTasksFailed(\UnitTester $tester)
+    /**
+     * @param UnitTester $tester
+     * @return void
+     */
+    public function testGetTasksFailed(UnitTester $tester): void
     {
-        $tester->expectThrowable(\Exception::class, function (){
+        $tester->expectThrowable(Exception::class, function (){
             $this->taskRepository->getByScheduleId(4);
         });
     }
 
-    public function tasksDataProvider()
+    /**
+     * @return array[]
+     */
+    public function tasksDataProvider(): array
     {
         return [
             [

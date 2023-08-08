@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tymeshift\PhpTest\Components;
@@ -10,5 +11,5 @@ interface DatabaseInterface
      * @param array $params
      * @return array
      */
-    public function query(string $query, array $params):array;
+    public function query(string $query, array $params): array;
 }

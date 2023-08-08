@@ -1,70 +1,57 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tymeshift\PhpTest\Base;
 
-use ArrayAccess;
 use ArrayIterator;
-use Countable;
-use IteratorAggregate;
-use JsonSerializable;
-use Traversable;
+use Tymeshift\PhpTest\Exceptions\CollectionLocalizedException;
 use Tymeshift\PhpTest\Exceptions\InvalidCollectionDataProvidedException;
+use Tymeshift\PhpTest\Exceptions\NoSuchEntityException;
 use Tymeshift\PhpTest\Interfaces\CollectionInterface;
 use Tymeshift\PhpTest\Interfaces\EntityInterface;
-use Tymeshift\PhpTest\Interfaces\FactoryInterface;
 
-abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAccess, JsonSerializable, CollectionInterface
+abstract class BaseCollection implements CollectionInterface
 {
     /** @var EntityInterface[] */
-    protected $items = [];
+    protected array $items = [];
 
     /**
-     * BaseCollection constructor.
-     * @param array $data
+     * @inheritDoc
      */
-    public function __construct(array $data = [])
+    public function getItems(): array
     {
-        foreach ($data as $key => $item) {
+        return $this->items;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setItems(array $items): CollectionInterface
+    {
+        foreach ($items as $key => $item) {
             if ($this->isEntity($item)) {
                 $this->items[$key] = $item;
             } else {
                 throw new InvalidCollectionDataProvidedException();
             }
         }
+
+        return $this;
     }
 
     /**
-     * @param EntityInterface $entity
-     * @return BaseCollection
+     * @inheritDoc
      */
-    public function add(EntityInterface $entity):CollectionInterface
+    public function add(EntityInterface $entity): CollectionInterface
     {
         $this->items[] = $entity;
-        return $this;
-    }
-
-    /**
-     * @param array $data
-     * @param FactoryInterface $factory
-     * @return BaseCollection
-     * @throws InvalidCollectionDataProvidedException
-     * @see buildFromArray
-     */
-    public function createFromArray(array $data, FactoryInterface $factory): CollectionInterface
-    {
-        foreach ($data as $item) {
-            if (is_array($item)) {
-                $this->items[] = $factory->createEntity($item);
-            } else {
-                throw new InvalidCollectionDataProvidedException();
-            }
-        }
 
         return $this;
     }
 
     /**
-     * @return array
+     * @inheritDoc
      */
     public function toArray():array
     {
@@ -77,17 +64,16 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
         return $result;
     }
 
-    public function toJson($options = 0)
+  /**
+   * @inheritDoc
+   */
+    public function toJson(int $options = 0): string
     {
         return json_encode($this->toArray(), $options);
     }
 
     /**
-     * Searches for an element. $key will be transformed into getKey method and result of it will be compared to value
-     * Comparison is strict
-     * @param mixed $key
-     * @param bool $value
-     * @return mixed
+     * @inheritDoc
      */
     public function search($key, $value)
     {
@@ -97,16 +83,13 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
             }
         }
 
-        return null;
+        throw new CollectionLocalizedException("Item with field $key and value $value doesn't exist in collection");
     }
 
     /**
-     * Remove item from collection
-     * @param string $key
-     * @param mixed $value
-     * @return bool|null
+     * @inheritDoc
      */
-    public function remove($key, $value)
+    public function remove($key, $value): bool
     {
         foreach ($this->items as $index => $item) {
             if ($item->{'get' . $key}() === $value) {
@@ -114,15 +97,14 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
                 return true;
             }
         }
-        return null;
+
+        return false;
     }
 
     /**
-     * @param callable $callback
-     * @return $this
-     * @throws InvalidCollectionDataProvidedException
+     * @inheritDoc
      */
-    public function map(callable $callback)
+    public function map(callable $callback): CollectionInterface
     {
         $keys = array_keys($this->items);
 
@@ -136,11 +118,9 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
     }
 
     /**
-     * @param callable $callback
-     * @return $this
-     * @throws InvalidCollectionDataProvidedException
+     * @inheritDoc
      */
-    public function filter(callable $callback)
+    public function filter(callable $callback): CollectionInterface
     {
         $newItems = [];
         foreach ($this->items as $value) {
@@ -153,10 +133,8 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
         return new static($newItems);
     }
 
-    //phpcs: enable
-
     /**
-     * @return ArrayIterator|Traversable
+     * @inheritDoc
      */
     public function getIterator()
     {
@@ -164,29 +142,23 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
     }
 
     /**
-     * @return int
+     * @inheritDoc
      */
-    public function count()
+    public function count(): int
     {
         return count($this->items);
     }
 
     /**
-     * Determine if an item exists at an offset.
-     *
-     * @param mixed $key
-     * @return bool
+     * @inheritDoc
      */
-    public function offsetExists($key)
+    public function offsetExists($key): bool
     {
         return array_key_exists($key, $this->items);
     }
 
     /**
-     * Get an item at a given offset.
-     *
-     * @param mixed $key
-     * @return mixed
+     * @inheritDoc
      */
     public function offsetGet($key)
     {
@@ -194,14 +166,10 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
     }
 
     /**
-     * Set the item at a given offset.
-     *
-     * @param mixed $key
-     * @param mixed $value
-     * @return void
+     * @inheritDoc
      * @throws InvalidCollectionDataProvidedException
      */
-    public function offsetSet($key, $value)
+    public function offsetSet($key, $value): void
     {
         if (!$this->isEntity($value)) {
             throw new InvalidCollectionDataProvidedException();
@@ -214,87 +182,59 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
     }
 
     /**
-     * Unset the item at a given offset.
-     *
-     * @param string $key
-     * @return void
+     * @inheritDoc
      */
-    public function offsetUnset($key)
+    public function offsetUnset($key): void
     {
         unset($this->items[$key]);
     }
 
     /**
-     * @param $item
+     * @param self $item
      * @return bool
      */
-    protected function isEntity($item)
+    protected function isEntity(self $item): bool
     {
         return ($item instanceof EntityInterface);
     }
 
     /**
-     * @return array|mixed
+     * @inheritDoc
      */
-    // phpcs:disable TymeshiftCodeStandard.Classes.EachMethodMustHaveReturnType
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return $this->toArray();
     }
-    //phpcs:enable
 
     /**
-     * Execute a callback over each item.
-     *
-     * @param  callable  $callback
-     * @return $this
+     * @inheritDoc
      */
-    public function each(callable $callback): self
+    public function each(callable $callback): CollectionInterface
     {
         foreach ($this->items as $key => $item) {
             if ($callback($item, $key) === false) {
                 break;
             }
         }
-        return $this;
-    }
-
-    /**
-     * @param array $data
-     * @param FactoryInterfaceAlias $factory
-     * @return BaseCollection
-     * @throws InvalidCollectionDataProvidedException
-     */
-    public function buildFromArray(array $data, FactoryInterfaceAlias $factory): self
-    {
-        foreach ($data as $item) {
-            if (is_array($item)) {
-                $this->items[] = $factory->build($item);
-            } else {
-                throw new InvalidCollectionDataProvidedException();
-            }
-        }
 
         return $this;
     }
 
     /**
-     * @param mixed $id
-     * @return EntityInterface|null
+     * @inheritDoc
      */
-    public function getById($id): ?EntityInterface
+    public function getById(int $id): EntityInterface
     {
         foreach ($this->items as $entity) {
-            if ($entity->getId() == $id) {
+            if ($entity->getId() === $id) {
                 return $entity;
             }
         }
-        return null;
+        throw new NoSuchEntityException($id);
     }
 
     /**
-     * @param string $property
-     * @return array
+     * @inheritDoc
      */
     public function pluck(string $property): array
     {
@@ -302,15 +242,14 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
         foreach ($this->items as $entity) {
             $data[] = $entity->{'get' . ucfirst($property)}();
         }
+
         return $data;
     }
 
     /**
-     * @param string $property
-     * @return Collection
-     * @throws InvalidCollectionDataProvidedException
+     * @inheritDoc
      */
-    public function getAssoc(string $property = 'id'):Collection
+    public function getAssoc(string $property = 'id'): CollectionInterface
     {
         $items = [];
         foreach ($this->items as $index => $entity) {
@@ -322,7 +261,7 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
     }
 
     /**
-     * @return array
+     * @inheritDoc
      */
     public function getIds(): array
     {
@@ -330,16 +269,18 @@ abstract class BaseCollection implements IteratorAggregate, Countable, ArrayAcce
         foreach ($this->items as $entity) {
             $result[] = $entity->getId();
         }
+
         return array_unique($result);
     }
 
     /**
-     * @return EntityInterface
+     * @inheritDoc
      */
-    public function last():EntityInterface
+    public function last(): EntityInterface
     {
         $lastItem = end($this->items);
         reset($this->items);
+
         return $lastItem;
     }
 }

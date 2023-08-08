@@ -1,44 +1,65 @@
 <?php
+
 declare(strict_types=1);
+
 namespace Tests;
 
 use Codeception\Example;
+use Mockery;
 use Mockery\MockInterface;
+use Tymeshift\PhpTest\Domains\Schedule\Builder\ScheduleBuilder;
+use Tymeshift\PhpTest\Domains\Schedule\Builder\ScheduleCollectionBuilder;
+use Tymeshift\PhpTest\Domains\Schedule\Factory\ScheduleCollectionFactory;
+use Tymeshift\PhpTest\Domains\Schedule\Factory\ScheduleFactory;
+use Tymeshift\PhpTest\Domains\Schedule\Interfaces\ScheduleStorageInterface;
 use Tymeshift\PhpTest\Domains\Schedule\ScheduleRepository;
-use Tymeshift\PhpTest\Domains\Schedule\ScheduleFactory;
 use Tymeshift\PhpTest\Domains\Schedule\ScheduleStorage;
 use Tymeshift\PhpTest\Exceptions\StorageDataMissingException;
+use UnitTester;
 
 class ScheduleCest
 {
+    /**
+     * @var MockInterface|null
+     */
+    private ?MockInterface $scheduleStorageMock;
 
     /**
-     * @var MockInterface|ScheduleStorage
+     * @var ScheduleRepository|null
      */
-    private $scheduleStorageMock;
+    private ?ScheduleRepository $scheduleRepository;
 
     /**
-     * @var ScheduleRepository
+     * @return void
      */
-    private $scheduleRepository;
-    
-    public function _before()
+    public function _before(): void
     {
-        $this->scheduleStorageMock = \Mockery::mock(ScheduleStorage::class);
-        $this->scheduleRepository = new ScheduleRepository($this->scheduleStorageMock, new ScheduleFactory());
+        //@TODO better to introduce DI container to base on automatic injections
+        $this->scheduleStorageMock = Mockery::mock(ScheduleStorage::class);
+        $this->scheduleRepository = new ScheduleRepository(
+            $this->scheduleStorageMock,
+            new ScheduleFactory(new ScheduleBuilder()),
+            new ScheduleCollectionFactory(new ScheduleCollectionBuilder(new ScheduleFactory(new ScheduleBuilder())))
+        );
     }
 
-    public function _after()
+    /**
+     * @return void
+     */
+    public function _after(): void
     {
         $this->scheduleRepository = null;
         $this->scheduleStorageMock = null;
-        \Mockery::close();
+        Mockery::close();
     }
 
     /**
+     * @param Example $example
+     * @param UnitTester $tester
+     * @return void
      * @dataProvider scheduleProvider
      */
-    public function testGetByIdSuccess(Example $example, \UnitTester $tester)
+    public function testGetByIdSuccess(Example $example, UnitTester $tester): void
     {
         ['id' => $id, 'start_time' => $startTime, 'end_time' => $endTime, 'name' => $name] = $example;
         $data = ['id' => $id, 'start_time' => $startTime, 'end_time' => $endTime, 'name' => $name];
@@ -55,9 +76,10 @@ class ScheduleCest
     }
 
     /**
-     * @param \UnitTester $tester
+     * @param UnitTester $tester
+     * @return void
      */
-    public function testGetByIdFail(\UnitTester $tester)
+    public function testGetByIdFail(UnitTester $tester): void
     {
         $this->scheduleStorageMock
             ->shouldReceive('getById')
@@ -71,7 +93,7 @@ class ScheduleCest
     /**
      * @return array[]
      */
-    protected function scheduleProvider()
+    protected function scheduleProvider(): array
     {
         return [
             ['id' => 1, 'start_time' => 1631232000, 'end_time' => 1631232000 + 86400, 'name' => 'Test'],

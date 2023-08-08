@@ -1,12 +1,13 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tymeshift\PhpTest\Domains\Schedule;
 
 use DateTime;
-use Tymeshift\PhpTest\Interfaces\EntityInterface;
+use Tymeshift\PhpTest\Domains\Schedule\Interfaces\ScheduleItemInterface;
 
-class ScheduleEntity implements EntityInterface
+class ScheduleEntity implements ScheduleItemInterface
 {
     /**
      * @var int
@@ -29,12 +30,7 @@ class ScheduleEntity implements EntityInterface
     private DateTime $endTime;
 
     /**
-     * @var ScheduleItemInterface[]
-     */
-    private array $items;
-
-    /**
-     * @return int
+     * @inheritDoc
      */
     public function getId(): int
     {
@@ -42,17 +38,17 @@ class ScheduleEntity implements EntityInterface
     }
 
     /**
-     * @param int $id
-     * @return ScheduleEntity
+     * @inheritDoc
      */
-    public function setId(int $id): ScheduleEntity
+    public function setId(int $id): ScheduleItemInterface
     {
         $this->id = $id;
+
         return $this;
     }
 
     /**
-     * @return string
+     * @inheritDoc
      */
     public function getName(): string
     {
@@ -60,12 +56,12 @@ class ScheduleEntity implements EntityInterface
     }
 
     /**
-     * @param string $name
-     * @return ScheduleEntity
+     * @inheritDoc
      */
-    public function setName(string $name): ScheduleEntity
+    public function setName(string $name): ScheduleItemInterface
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -78,12 +74,12 @@ class ScheduleEntity implements EntityInterface
     }
 
     /**
-     * @param DateTime $startTime
-     * @return ScheduleEntity
+     * @inheritDoc
      */
-    public function setStartTime(DateTime $startTime): ScheduleEntity
+    public function setStartTime(DateTime $startTime): ScheduleItemInterface
     {
         $this->startTime = $startTime;
+
         return $this;
     }
 
@@ -96,12 +92,12 @@ class ScheduleEntity implements EntityInterface
     }
 
     /**
-     * @param DateTime $endTime
-     * @return ScheduleEntity
+     * @inheritDoc
      */
-    public function setEndTime(DateTime $endTime): ScheduleEntity
+    public function setEndTime(DateTime $endTime): ScheduleItemInterface
     {
         $this->endTime = $endTime;
+
         return $this;
     }
 }
