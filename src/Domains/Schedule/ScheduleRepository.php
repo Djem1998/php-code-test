@@ -1,26 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tymeshift\PhpTest\Domains\Schedule;
 
-use Tymeshift\PhpTest\Domains\Schedule\ScheduleStorage;
-use Tymeshift\PhpTest\Interfaces\EntityInterface;
-use Tymeshift\PhpTest\Interfaces\FactoryInterface;
+use Tymeshift\PhpTest\Base\BaseRepository;
+use Tymeshift\PhpTest\Domains\Schedule\Interfaces\ScheduleRepositoryInterface;
+use Tymeshift\PhpTest\Domains\Schedule\Interfaces\ScheduleStorageInterface;
+use Tymeshift\PhpTest\Interfaces\CollectionFactoryInterface;
+use Tymeshift\PhpTest\Interfaces\EntityFactoryInterface;
 
-class ScheduleRepository
+class ScheduleRepository extends BaseRepository implements ScheduleRepositoryInterface
 {
-    private $storage;
+    protected const ENTITY = 'schedule';
 
-    private $factory;
-
-    public function __construct(ScheduleStorage $storage, FactoryInterface $factory)
-    {
-        $this->storage = $storage;
-        $this->factory = $factory;
-    }
-
-    public function getById(int $id):EntityInterface
-    {
-        $data = $this->storage->getById($id);
-        return $this->factory->createEntity($data);
+    /**
+     * @param ScheduleStorageInterface $storage
+     * @param EntityFactoryInterface $entityFactory
+     * @param CollectionFactoryInterface $collectionFactory
+     */
+    public function __construct(
+        ScheduleStorageInterface $storage,
+        EntityFactoryInterface $entityFactory,
+        CollectionFactoryInterface $collectionFactory
+    ) {
+        parent::__construct($storage, $entityFactory, $collectionFactory);
     }
 }

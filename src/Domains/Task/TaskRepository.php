@@ -1,42 +1,44 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Tymeshift\PhpTest\Domains\Task;
 
-use Tymeshift\PhpTest\Interfaces\EntityCollection;
-use Tymeshift\PhpTest\Interfaces\EntityInterface;
-use Tymeshift\PhpTest\Interfaces\RepositoryInterface;
+use Tymeshift\PhpTest\Base\BaseRepository;
+use Tymeshift\PhpTest\Domains\Task\Interfaces\TaskRepositoryInterface;
+use Tymeshift\PhpTest\Domains\Task\Interfaces\TaskStorageInterface;
+use Tymeshift\PhpTest\Exceptions\StorageDataMissingException;
+use Tymeshift\PhpTest\Interfaces\CollectionFactoryInterface;
+use Tymeshift\PhpTest\Interfaces\CollectionInterface;
+use Tymeshift\PhpTest\Interfaces\EntityFactoryInterface;
 
-class TaskRepository implements RepositoryInterface
+class TaskRepository extends BaseRepository implements TaskRepositoryInterface
 {
-    /**
-     * @var TaskFactory
-     */
-    private $factory;
+    protected const ENTITY = 'task';
 
     /**
-     * @var TaskStorage
+     * @param TaskStorageInterface $storage
+     * @param EntityFactoryInterface $entityFactory
+     * @param CollectionFactoryInterface $collectionFactory
      */
-    private $storage;
-
-    public function __construct(TaskStorage $storage, TaskFactory $factory)
-    {
-        $this->factory = $factory;
-        $this->storage = $storage;
+    public function __construct(
+        TaskStorageInterface $storage,
+        EntityFactoryInterface $entityFactory,
+        CollectionFactoryInterface $collectionFactory
+    ) {
+        parent::__construct($storage, $entityFactory, $collectionFactory);
     }
 
-    public function getById(int $id): EntityInterface
+    /**
+     * @inheritDoc
+     */
+    public function getByScheduleId(int $scheduleId): CollectionInterface
     {
-        // TODO: Implement getById() method.
-    }
+        $data = $this->storage->getByScheduleId($scheduleId);
+        if (!$data) {
+            throw new StorageDataMissingException(self::ENTITY);
+        }
 
-    public function getByScheduleId(int $scheduleId):TaskCollection
-    {
-
-    }
-
-    public function getByIds(array $ids): TaskCollection
-    {
-        // TODO: Implement getByIds() method.
+        return $this->collectionFactory->createCollection($data);
     }
 }

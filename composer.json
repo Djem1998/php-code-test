@@ -4,7 +4,8 @@
     "type": "project",
     "autoload": {
         "psr-4": {
-            "Tymeshift\\PhpTest\\": "src/"
+            "Tymeshift\\PhpTest\\": "src/",
+            "Tests\\": "tests/"
         }
     },
     "authors": [
